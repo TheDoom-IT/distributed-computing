@@ -1,12 +1,12 @@
 import os from 'node:os';
 
-export function getBroadcastAddress() {
+export function getAddresses(): { broadcastAddress: string, address: string } {
     const ipv4Addresses = [];
 
     const interfaces = os.networkInterfaces();
     for (const name of Object.keys(interfaces)) {
         const iface = interfaces[name];
-        for (const addr of iface) {
+        for (const addr of iface!) {
             if (addr.family === 'IPv4' && !addr.internal) {
                 ipv4Addresses.push(addr);
             }
@@ -32,7 +32,9 @@ export function getBroadcastAddress() {
         return Number(value) ^ 255;
     });
 
-    return  prefix.map((value, index) => {
+    const broadcastAddress =  prefix.map((value, index) => {
         return value + postfix[index];
     }).map((value) => value.toString()).join(".");
+
+    return {broadcastAddress, address};
 }

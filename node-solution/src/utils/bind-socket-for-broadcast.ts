@@ -1,11 +1,13 @@
 import {SUPPORTED_PORTS} from "../constants/supported-ports.js";
+import dgram from "node:dgram";
+import {Logger} from "winston";
 
-async function tryToBindSocket(socket, port) {
+async function tryToBindSocket(socket: dgram.Socket, port: number) {
     return new Promise((resolve, reject) => {
-        const handlePortTaken = (err) => {
+        const handlePortTaken = (err: Error) => {
             socket.removeListener('error', handlePortTaken);
 
-            if (err.code === 'EADDRINUSE') {
+            if ('code' in err && err.code === 'EADDRINUSE') {
                 return resolve(false);
             }
 
@@ -21,7 +23,7 @@ async function tryToBindSocket(socket, port) {
     });
 }
 
-export async function bindSocketForBroadcast(socket, logger) {
+export async function bindSocketForBroadcast(socket: dgram.Socket, logger: Logger) {
     for (const port of SUPPORTED_PORTS) {
         logger.info(`Trying to bind socket on port ${port}`)
         const success = await tryToBindSocket(socket, port);
