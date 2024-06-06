@@ -2,6 +2,7 @@ import pickle
 import socket #to get ip
 from datetime import datetime, timedelta
 # from settings import date_format
+import json
 
 
 
@@ -21,19 +22,19 @@ class node:
 		self.node_id = node_id
 
 	def setIp(self, ip_address: str):
-		self.ip_address = ip_address
+		self.node_ip = ip_address
 
 	def setPort(self, port: int):
-		self.port = port
+		self.node_port = port
 
 	def getId(self):
 		return self.node_id
 
 	def getIp(self):
-		return self.ip_address
+		return self.node_ip
 
 	def getPort(self):
-		return self.port
+		return self.node_port
 
 	def __str__(self):
 		return("nodeId: ", self.node_id, " ip: ", self.ip_address, " port: ", self.port)
@@ -63,6 +64,7 @@ class voting:
 	votes = None
 	vote_results = None
 
+
 	def __init__(self, voting_id:str, host_node_id: str, question:str, end_time, vote_options):
 		self.voting_id = voting_id
 		self.host_node_id = host_node_id
@@ -88,6 +90,10 @@ class voting:
 
 	# def getEndtimeStr(self):
 	# 	return self.end_time.strftime(date_format)
+	def addVotes(self, votes):
+		self.votes = votes
+		for vote in votes:
+			self.vote_results[votes[vote]]+=1
 
 	def getVoteOptionsString(self):
 		string = "["
@@ -104,12 +110,13 @@ class voting:
 			self.vote_results[self.votes[node_id]] -= 1 #nullify previous vote if exists
 		self.votes[node_id] = option #cast current vote (overrides previous vote if exists)
 		self.vote_results[option] += 1 #count current vote
+		from commons import thisNode
+		thisNode.save()
 
 
 
 class thisNode(node):
 	known_nodes = {}
-	active_voting = None
 	def __init__ (self):
 		pass
 		# self.ip_address = socket.gethostbyname(socket.gethostname())
@@ -120,8 +127,28 @@ class thisNode(node):
 	# 	print("\n\nnode created\nnode id: ", self.node_id,"\nip address: ", self.ip_address)
 
 	def save(self):
-		print(pickle(self))
-	
+		from commons import votings
+		saveDict={}
+		saveDict['node_id'] = self.node_id
+		saveDict['node_ip'] = self.node_ip
+		saveDict['node_port'] = self.node_port
+		saveDict['votings'] = []
+		for vot in votings:
+			if vot.host_node_id == self.node_id:
+				votingDict = {}
+				votingDict['voting_id'] = vot.voting_id
+				votingDict['question'] = vot.question
+				votingDict['end_time'] = vot.end_time
+				votingDict['vote_options'] = vot.vote_options
+				votingDict['votes'] = vot.votes
+				votingDict['vote_results'] = vot.vote_results
+			saveDict['votings'].append(votingDict)
+
+		print(json.dumps(saveDict))
+		f = open("savefiles/"+self.node_id+".txt","w")
+		f.write(json.dumps(saveDict))
+		f.close()
+
 	def addNode(self, id, ip, port):
 		self.known_nodes[id] = node(id, ip, port)
 		print("added node: ")

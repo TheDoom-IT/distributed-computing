@@ -1,6 +1,7 @@
 import socket
 from settings import ip_addr, mask
 from commons import thisNode, votings
+from sendHelloReply import sendHelloReply
 import traceback
 import ipaddress
 import json
@@ -42,17 +43,18 @@ def udpListner():
 			node_ip = obj["ip"]
 			node_port = obj["port"]
 			thisNode.addNode(node_id,node_ip,node_port)
-			active_votings = []
-			for vot in votings:
-				# if len(active_votings) > 0:
-				# 	active_votings+=", "
-				active_votings.append({'votingId':vot.voting_id, 'question':vot.question,'endTime':vot.end_time,'voteOptions':vot.vote_options})
+			sendHelloReply(node_ip, node_port)
+			# active_votings = []
+			# for vot in votings:
+			# 	# if len(active_votings) > 0:
+			# 	# 	active_votings+=", "
+			# 	active_votings.append({'votingId':vot.voting_id, 'question':vot.question,'endTime':vot.end_time,'voteOptions':vot.vote_options})
 
-			url = "http://"+node_ip+":"+str(node_port)+"/hello-reply"
-			js = {'ip':thisNode.getIp(),'nodeId':thisNode.getId(),'port':thisNode.getPort(),'activeVotings':active_votings}
-			# print("json: ",json)
-			x = requests.post(url, json = js)
-			# print(x)
+			# url = "http://"+node_ip+":"+str(node_port)+"/hello-reply"
+			# js = {'ip':thisNode.getIp(),'nodeId':thisNode.getId(),'port':thisNode.getPort(),'activeVotings':active_votings}
+			# # print("json: ",json)
+			# x = requests.post(url, json = js)
+			# # print(x)
 
 	except Exception as e:
 		print("udp listener exception:\n",traceback.format_exc())

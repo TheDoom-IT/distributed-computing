@@ -1,11 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
 from server import runServer
-from commons import testQueue, thisNode
+from commons import thisNode, votings
+from classes import voting
 from handleCommand import handleCommand
 import traceback
 from settings import ip_addr, mask
 from udpListner import udpListner
 import socket
+import os.path
 
 
 
@@ -40,26 +42,55 @@ if __name__ == '__main__':
 	node_id = input("what's my id? ")
 	while not node_id.isnumeric():
 		node_id = input("what's my id? must be numeric ")
-	thisNode.setId(node_id=node_id)
+	loadInput = False
 
-	port = input("On what port do I run? ")
-	while not node_id.isnumeric():
-		port = input("On what port do I run? must be numeric ")
-	port = int(port)
-	thisNode.setPort(port)
+	if os.path.isfile("savefiles/"+node_id+".txt"):
+		print("savefile exists")
+		rec = input("recover from file? (Y/n)")
+		rec = rec.lower()
+		while rec[0] != 'y' and rec[0] != 'n':
+			rec = input("recover from file? (Y/n)")
+			rec = rec.lower()
+		if rec[0] == 'y':
+			loadInput = True
+
+	if not loadInput:
+		thisNode.setId(node_id=node_id)
+
+		node_port = input("On what port do I run? ")
+		while not node_id.isnumeric():
+			node_port = input("On what port do I run? must be numeric ")
+		node_port = int(node_port)
+		thisNode.setPort(node_port)
+		thisNode.save()
+	else:
+		f = open("savefiles/"+node_id+".txt")
+
+		obj = json.loads(f.read())
+		print(obj)
+		node_id = obj['node_id']
+		node_ip = obj['node_ip']
+		node_port = int(obj['node_port'])
+		thisNode.setId(node_id=node_id)
+		thisNode.setPort(node_port)
+		for vot in obj['votings']: #vot is a dict
+			votingObj = voting(vot['voting_id'],thisNode.getId(),vot['question'],vot['end_time'],vot['vote_options'])
+			votingObj.addVotes(vot['votes'])
+			votings.append(votingObj)
 
 
-	TPE.submit(runServer, ip_addr, port)
+
+	TPE.submit(runServer, ip_addr, node_port)
 	# TPE.submit(print,"\n\n\ntest test")
 	time.sleep(2)
-	sendUDP(node_id, port)
+	sendUDP(node_id, node_port)
 	TPE.submit(udpListner)
 
-	UDP_IP = ip_addr
-	UDP_PORT = 10000
-	MESSAGE = b"hello"
-	sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-	sock.sendto(MESSAGE, (UDP_IP,UDP_PORT))
+	# UDP_IP = ip_addr
+	# UDP_PORT = 10000
+	# MESSAGE = b"hello"
+	# sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+	# sock.sendto(MESSAGE, (UDP_IP,UDP_PORT))
 
 
 	while True:

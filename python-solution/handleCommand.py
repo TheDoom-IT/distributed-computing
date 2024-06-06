@@ -1,5 +1,6 @@
 from commons import thisNode, votings
 from classes import voting
+from sendHelloReply import sendHelloReply
 import requests
 import uuid
 import json
@@ -47,6 +48,7 @@ def handleCommand(line):
 			print(x)
 			print(x.content)
 		votings.append(currVoting)
+		thisNode.save()
 
 	elif line[0] == "printvotings":
 		printVotings()
@@ -85,6 +87,10 @@ def handleCommand(line):
 			print(vot.vote_results)
 		else:
 			print("voting hosted by another node")
+			hostNode = thisNode.known_nodes[vot.host_node_id]
+			url = "http://"+str(hostNode.node_ip)+":"+str(hostNode.node_port)+"/get-voting-results"
+			x = requests.get(url, params={'votingId':vot.voting_id})
+			print(x.content)
 
 		# votingId = voting["votingid"]
 		# endTime = voting["endTime"]
@@ -100,17 +106,10 @@ def handleCommand(line):
 		# print("node_ip: [",node_ip,"]: ", len(node_ip))
 		node_port = input("what's the nodes port? ")
 		thisNode.addNode(node_id,node_ip,node_port)
-		active_votings = []
-		for vot in votings:
-			# if len(active_votings) > 0:
-			# 	active_votings+=", "
-			active_votings.append({'votingId':vot.voting_id, 'question':vot.question,'endTime':vot.end_time,'voteOptions':vot.vote_options})
+		sendHelloReply(node_ip, node_port)
 
-		url = "http://"+node_ip+":"+node_port+"/hello-reply"
-		json = {'ip':thisNode.getIp(),'nodeId':thisNode.getId(),'port':thisNode.getPort(),'activeVotings':active_votings}
-		print("json: ",json)
-		x = requests.post(url, json = json)
-		print(x)
+	elif line[0] == "save":
+		thisNode.save()
 
 	else:
 		print("unknown command")
