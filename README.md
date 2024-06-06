@@ -15,6 +15,6 @@ You can download it [here](https://nodejs.org/en/download/).
 npm install
 # compile TypeScript to JavaScript
 npm run build
-# run the application
-node dist/main.js
+# run the application in production mode
+NODE_ENV=production node dist/main.js
 ```
