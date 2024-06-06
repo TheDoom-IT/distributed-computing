@@ -1,6 +1,6 @@
 import {createLogger, format, transports} from 'winston';
 
-export function getLogger() {
+export function getLogger(nodeId: string) {
     const logger = createLogger({
         level: 'info',
         format: format.combine(
@@ -8,7 +8,7 @@ export function getLogger() {
             format.simple()
         ),
         transports: [
-            new transports.File({filename: 'logs.log'}),
+            new transports.File({filename: `${nodeId}-logs.log`}),
         ]
     });
 

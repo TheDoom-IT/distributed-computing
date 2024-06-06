@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {MAX_VOTE_OPTIONS} from "../constants/max-vote-options.js";
 
 export const HelloReplySchema = z.object({
     nodeId: z.string(),
@@ -8,7 +9,7 @@ export const HelloReplySchema = z.object({
         votingId: z.string(),
         endTime: z.number().positive(),
         question: z.string(),
-        voteOptions: z.array(z.string())
+        voteOptions: z.array(z.string()).max(MAX_VOTE_OPTIONS)
     })).optional(),
 });
 

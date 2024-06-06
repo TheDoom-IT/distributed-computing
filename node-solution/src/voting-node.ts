@@ -5,25 +5,13 @@ import {HelloReply} from "./models/hello-reply.js";
 import {StartVoting} from "./models/start-voting.js";
 import {VotingResultsSchema} from "./models/voting-results.js";
 import {SendVote} from "./models/send-vote.js";
+import {Database, InternalVoting} from "./database.js";
 
 
 interface ExternalNode {
     id: string;
     port: number;
     ip: string;
-}
-
-interface Vote {
-    nodeId: string;
-    voteOptionIndex: number;
-}
-
-interface InternalVoting {
-    id: string;
-    question: string;
-    voteOptions: string[];
-    endTime: number;
-    votes: Record<string, Vote>;
 }
 
 interface ExternalVoting {
@@ -35,18 +23,21 @@ interface ExternalVoting {
 }
 
 export class VotingNode {
-    private readonly id: string;
     private readonly knownNodes: Record<string, ExternalNode>;
-    private readonly votings: Record<string, InternalVoting>;
     private readonly externalVotings: Record<string, ExternalVoting>;
+    private readonly database: Database;
 
-    constructor(private readonly ip: string, private readonly port: number, private logger: Logger) {
-        this.id = uuidv4();
+    constructor(private readonly id: string, private readonly ip: string, private readonly port: number, private logger: Logger) {
         this.port = port;
         this.logger = logger;
         this.knownNodes = {};
-        this.votings = {}
         this.externalVotings = {}
+
+        this.database = new Database(id, this.logger);
+    }
+
+    getId() {
+        return this.id;
     }
 
     getKnownNodes() {
@@ -58,7 +49,11 @@ export class VotingNode {
     }
 
     getVotingResults(votingId: string): InternalVoting | null {
-        return this.votings[votingId];
+        return this.database.getVoting(votingId);
+    }
+
+    getInternalVotings() {
+        return this.database.getAllVotings();
     }
 
     async getExternalVotingResults(votingId: string) {
@@ -92,10 +87,19 @@ export class VotingNode {
     }
 
     prepareHelloMessage(): HelloMessage {
+        const allVotings = this.database.getAllVotings();
+        const activeVotings = Object.values(allVotings).map((voting) => ({
+            votingId: voting.id,
+            endTime: voting.endTime,
+            question: voting.question,
+            voteOptions: voting.voteOptions
+        }));
+
         return {
             nodeId: this.id,
             port: this.port,
-            ip: this.ip
+            ip: this.ip,
+            activeVotings
         };
     }
 
@@ -110,6 +114,15 @@ export class VotingNode {
             ip: message.ip
         })
 
+        message.activeVotings?.forEach((activeVoting) => {
+            this.externalVotings[activeVoting.votingId] = {
+                id: activeVoting.votingId,
+                nodeId: message.nodeId,
+                question: activeVoting.question,
+                voteOptions: activeVoting.voteOptions,
+                endTime: activeVoting.endTime
+            }
+        })
         await this.sendHelloReply(this.knownNodes[message.nodeId]);
     }
 
@@ -120,10 +133,7 @@ export class VotingNode {
             ip: message.ip
         });
 
-        if (message.activeVotings === undefined) {
-            return;
-        }
-        for (const activeVoting of message.activeVotings) {
+        message.activeVotings?.forEach((activeVoting) => {
             this.externalVotings[activeVoting.votingId] = {
                 id: activeVoting.votingId,
                 nodeId: message.nodeId,
@@ -131,7 +141,7 @@ export class VotingNode {
                 voteOptions: activeVoting.voteOptions,
                 endTime: activeVoting.endTime
             }
-        }
+        })
     }
 
     addNode(node: ExternalNode) {
@@ -155,7 +165,8 @@ export class VotingNode {
     }
 
     async sendHelloReply(node: ExternalNode) {
-        const activeVotings = Object.values(this.votings).map((voting) => ({
+        const allVotings = this.database.getAllVotings();
+        const activeVotings = Object.values(allVotings).map((voting) => ({
             votingId: voting.id,
             endTime: voting.endTime,
             question: voting.question,
@@ -185,7 +196,7 @@ export class VotingNode {
     async startNewVoting(question: string, voteOptions: string[], timeLimit: number) {
         const endTime = new Date().getTime() + timeLimit;
         const id = uuidv4();
-        this.votings[id] = {id, question, voteOptions, endTime, votes: {}};
+        this.database.addNewVoting({id, question, voteOptions, endTime, votes: {}});
 
         const startVoting: StartVoting = {
             nodeId: this.id,
@@ -241,7 +252,7 @@ export class VotingNode {
             throw new Error(`Unknown node ${message.nodeId} tried to send vote`);
         }
 
-        const voting = this.votings[message.votingId];
+        const voting = this.database.getVoting(message.votingId);
         if (!voting) {
             throw new Error(`Voting ${message.votingId} not found`);
         }
@@ -251,10 +262,12 @@ export class VotingNode {
             this.logger.info(`Node ${message.nodeId} already voted in voting ${message.votingId}. Changing the vote.`);
         }
 
-        voting.votes[message.nodeId] = {
+        const vote = {
             nodeId: message.nodeId,
             voteOptionIndex: message.voteOptionIndex
         }
+
+        this.database.addVote(message.votingId, vote);
     }
 
     async sendVote(votingId: string, voteOptionIndex: number) {

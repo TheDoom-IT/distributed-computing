@@ -7,22 +7,24 @@ import {getAddresses} from "./utils/get-addresses.js";
 
 
 async function main() {
-    const logger = getLogger();
+    const ui = new UI()
+    const nodeId = await ui.getNodeId();
+
+    const logger = getLogger(nodeId);
+    logger.info(`==== Starting node with ID ${nodeId} ====`)
     const httpServer = new HttpServer(logger);
     const addresses = getAddresses();
 
     const socketService = new SocketService(addresses.broadcastAddress, logger);
     await socketService.initialize();
 
-    // TODO: set up a node from file after crash
-    const node = new VotingNode(addresses.address, httpServer.getServerPort(), logger);
+    const node = new VotingNode(nodeId, addresses.address, httpServer.getServerPort(), logger);
 
     socketService.startListening(node);
     await socketService.sendHelloBroadcast(node.prepareHelloMessage());
 
     httpServer.startListening(node);
 
-    const ui = new UI(logger);
     await ui.start(node);
 
 
