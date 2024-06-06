@@ -1,0 +1,5 @@
+.venv/
+logs/
+__pycache__/
+start.txt
+test.py
