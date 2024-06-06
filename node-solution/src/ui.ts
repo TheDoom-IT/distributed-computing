@@ -1,27 +1,35 @@
 import {input, select} from "@inquirer/prompts";
 import {VotingNode} from "./voting-node.js";
-import {Logger} from "winston";
+import {v4 as uuidv4} from 'uuid';
+import {MAX_VOTE_OPTIONS} from "./constants/max-vote-options.js";
+import * as util from "node:util";
 
 export class UI {
-    constructor(private logger: Logger) {
-    }
-
     ACTIONS = {
         START_VOTING: 'Start voting',
         SEND_VOTE: 'Send vote',
-        GET_RESULTS: 'Get voting results',
+        GET_RESULTS: 'Get external voting results',
         GET_LIST_OF_NODES: 'Get list of nodes',
+        GET_STARTED_VOTINGS: 'Get internal votings',
         EXIT: 'Exit'
     };
 
-    MAX_VOTE_OPTIONS = 8;
+    async getNodeId() {
+        const nodeId = await input({
+            message: "What node ID do you want to use? (Leave empty for random)",
+        });
+
+        if (nodeId === '') {
+            return uuidv4();
+        }
+
+        return nodeId;
+    }
 
     async start(node: VotingNode) {
-        this.logger.info("UI started");
-
         whileLoop: while (true) {
             const menuAction = await select({
-                message: 'What do you want to do?',
+                message: `${node.getId()}: What do you want to do?`,
                 choices: [
                     {
                         value: this.ACTIONS.START_VOTING,
@@ -40,9 +48,13 @@ export class UI {
                         description: 'Get list of nodes',
                     },
                     {
+                        value: this.ACTIONS.GET_STARTED_VOTINGS,
+                        description: 'Get started votes',
+                    },
+                    {
                         value: this.ACTIONS.EXIT,
                         description: 'Exit the application',
-                    }
+                    },
                 ],
             });
 
@@ -56,6 +68,9 @@ export class UI {
                 case this.ACTIONS.GET_RESULTS:
                     await this.handleGetResults(node);
                     break;
+                case this.ACTIONS.GET_STARTED_VOTINGS:
+                    this.handleGetStartedVotings(node);
+                    break;
                 case this.ACTIONS.GET_LIST_OF_NODES:
                     this.handleGetListOfNodes(node);
                     break;
@@ -63,6 +78,12 @@ export class UI {
                     break whileLoop;
             }
         }
+    }
+
+    handleGetStartedVotings(node: VotingNode) {
+        const votings = node.getInternalVotings()
+        const toShow = Object.values(votings)
+        console.log(util.inspect(toShow, {depth: null, colors: true}))
     }
 
     async handleStartVoting(node: VotingNode) {
@@ -86,7 +107,7 @@ export class UI {
 
             voteOptions.push(answer);
 
-            if (voteOptions.length === this.MAX_VOTE_OPTIONS) {
+            if (voteOptions.length === MAX_VOTE_OPTIONS) {
                 console.log("You have reached the maximum number of vote options")
                 break;
             }
@@ -140,8 +161,8 @@ export class UI {
     async handleGetResults(node: VotingNode) {
         const externalVotings = node.getExternalVotings();
         const choices = Object.values(externalVotings).map((voting) => ({
-            value: voting.id,
-            description: voting.question
+            name: voting.nodeId + ": " + voting.question,
+            value: voting.id
         }))
         if (choices.length === 0) {
             console.log("There are no active votings")
