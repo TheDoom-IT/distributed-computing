@@ -8,7 +8,7 @@ const addresses = getAddresses();
 const send100Messages = async () => {
     for (let i = 0; i < 100; i++) {
         console.log(`Sending message ${i + 1}`);
-        const message = Buffer.from(`Message ${i}`);
+        const message = Buffer.from(`${i + 1}`);
         await new Promise(((res, rej) => {
             socket.send(message, 0, message.length, 5001, addresses.broadcastAddress, (error) => {
                 if (error !== null) {
