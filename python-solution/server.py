@@ -10,13 +10,13 @@ app = Flask(__name__)
 
 @app.route("/hello-reply", methods = ['POST'])
 def helloReply():
-	print("got hello reply")
+	# print("got hello reply")
 	nodeId = request.json["nodeId"]
 	nodeIp = request.json["ip"]
 	nodePort = request.json["port"]
 	thisNode.addNode(nodeId, nodeIp, nodePort)
 	for vot in request.json["activeVotings"]:
-		print("vot: [",vot,"]")
+		# print("vot: [",vot,"]")
 		votingId = vot["votingId"]
 		endTime = vot["endTime"]
 		question = vot["question"]
@@ -35,7 +35,7 @@ def startVoting():
 	for voteOption in request.json["voteOptions"]:
 		voteOptions.append(voteOption)
 	votings.append(voting(votingId, hostId, question, endTime, voteOptions))
-	print("voting created, question: [",question,"] host: ", hostId)
+	# print("voting created, question: [",question,"] host: ", hostId)
 	return jsonify("startVoting")
 
 @app.route("/send-vote", methods = ['POST'])
@@ -57,23 +57,26 @@ def getVotingResults():
 	# print("from queue: ", testQueue.get())
 	# request.
 	votingId = request.args.get('votingId')
-	print("got get-voting-results votingId: ", votingId)
+	# print("got get-voting-results votingId: ", votingId)
 	votingNum = -1
 	for i in range(len(votings)):
 		if votings[i].voting_id == votingId:
 			votingNum = i
-	print("votingNum: ",votingNum)
+	# print("votingNum: ",votingNum)
 	if votingNum == -1:
 		abort(404)
 	return jsonify(votings[votingNum].vote_results)
 
 def runServer(ip_addr, port):
-	# with app.app_context()
+	# with app.app_context():
+	# 	print("flask server started")
+	# 	from sendUDP import sendUDP
+	# 	sendUDP()
 
 
-    import logging
-    logging.basicConfig(filename='logs/flask.log',level=logging.DEBUG)
-    app.run(host=ip_addr, port = port)
+	import logging
+	logging.basicConfig(filename='logs/flask.log',level=logging.DEBUG)
+	app.run(host=ip_addr, port = port)
 # while True:
 
 # a = input("testing input ")

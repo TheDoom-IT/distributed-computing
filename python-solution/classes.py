@@ -12,13 +12,13 @@ class node:
 	node_port = None
 
 	def __init__(self, node_id: str, ip_address: str, port: int):
-		print("creating node: ", node_id, " addr: ", ip_address, " port: ", port)
+		# print("creating node: ", node_id, " addr: ", ip_address, " port: ", port)
 		self.node_id = node_id
 		self.node_ip = ip_address
 		self.node_port = port
 
 	def setId(self, node_id: str):
-		print("old id: ", self.node_id," new id: ", node_id)
+		# print("old id: ", self.node_id," new id: ", node_id)
 		self.node_id = node_id
 
 	def setIp(self, ip_address: str):
@@ -70,23 +70,23 @@ class voting:
 		self.host_node_id = host_node_id
 		self.question = question
 		if isinstance(end_time, float):
-			print("got endtime as float")
+			# print("got endtime as float")
 			self.end_time = end_time#datetime.strptime(end_time, date_format)
 		elif isinstance(end_time, int):
-			print("got endtime as int")
+			# print("got endtime as int")
 			dt = datetime.now() + timedelta(minutes = end_time)
 			self.end_time = datetime.timestamp(dt)
-		else:
-			print("unsupported endtime type ", type(end_time))
+		# else:
+		# 	print("unsupported endtime type ", type(end_time))
 		self.vote_options = vote_options
 		self.votes = {}
 		self.vote_results = [0]*len(self.vote_options)
-		print("\nvoting created")
-		print("id: ", self.voting_id)
-		print("node id: ", self.host_node_id)
-		print("question: ", self.question)
-		print("end_time: ", self.end_time)
-		print("vote options: ", self.vote_options)
+		# print("\nvoting created")
+		# print("id: ", self.voting_id)
+		# print("node id: ", self.host_node_id)
+		# print("question: ", self.question)
+		# print("end_time: ", self.end_time)
+		# print("vote options: ", self.vote_options)
 
 	# def getEndtimeStr(self):
 	# 	return self.end_time.strftime(date_format)
@@ -105,7 +105,7 @@ class voting:
 		return string
 
 	def castVote(self, node_id, option:int):
-		print("casting vote: ",option, " node id: ", node_id)
+		# print("casting vote: ",option, " node id: ", node_id)
 		if node_id in self.votes:
 			self.vote_results[self.votes[node_id]] -= 1 #nullify previous vote if exists
 		self.votes[node_id] = option #cast current vote (overrides previous vote if exists)
@@ -144,14 +144,14 @@ class thisNode(node):
 				votingDict['vote_results'] = vot.vote_results
 			saveDict['votings'].append(votingDict)
 
-		print(json.dumps(saveDict))
+		# print(json.dumps(saveDict))
 		f = open("savefiles/"+self.node_id+".txt","w")
 		f.write(json.dumps(saveDict))
 		f.close()
 
 	def addNode(self, id, ip, port):
 		self.known_nodes[id] = node(id, ip, port)
-		print("added node: ")
+		# print("added node: ")
 
 
 
