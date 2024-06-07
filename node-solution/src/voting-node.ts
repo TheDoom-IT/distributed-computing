@@ -159,7 +159,7 @@ export class VotingNode {
             this.logger.info(`Sending message to ${url}`);
             return await fetch(url, params)
         } catch (error) {
-            this.logger.error(`Failed to send message to ${url}`);
+            this.logger.error(`Failed to send message to ${url}: ${error}`);
         }
         return null;
     }
