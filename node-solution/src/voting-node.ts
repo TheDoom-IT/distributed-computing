@@ -157,7 +157,12 @@ export class VotingNode {
     private async sendMessage(url: string, params: Record<string, any>): Promise<Response | null> {
         try {
             this.logger.info(`Sending message to ${url}`);
-            return await fetch(url, params)
+            const result = await fetch(url, params)
+            if (!result.ok) {
+                this.logger.error(`Failed to send message to ${url}. Invalid response: ${result.status}`);
+            }
+
+            return result;
         } catch (error) {
             this.logger.error(`Failed to send message to ${url}: ${error}`);
         }
