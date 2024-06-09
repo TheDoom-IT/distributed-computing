@@ -69,7 +69,7 @@ def vote():
 		vot.castVote(thisNode.node_id, option)
 	else:
 		node = thisNode.known_nodes[vot.host_node_id]
-		js = {'node_id':thisNode.node_id,'voting_id':vot.voting_id ,'vote_option':option}
+		js = {'nodeId':thisNode.node_id,'votingId':vot.voting_id ,'voteOptionIndex':option}
 		url = "http://"+str(node.node_ip)+":"+str(node.node_port)+"/send-vote"
 		try:
 			x = requests.post(url, json=js)
@@ -93,9 +93,9 @@ def printVotingResults():
 	else:
 		print("voting hosted by another node")
 		hostNode = thisNode.known_nodes[vot.host_node_id]
-		url = "http://"+str(hostNode.node_ip)+":"+str(hostNode.node_port)+"/get-voting-results"
+		url = "http://"+str(hostNode.node_ip)+":"+str(hostNode.node_port)+"/get-voting-results/"+str(vot.voting_id)
 		try:
-			x = requests.get(url, params={'votingId':vot.voting_id})
+			x = requests.get(url)#, params={'votingId':vot.voting_id})
 			obj = json.loads(x.content.decode("utf-8"))
 			for i in range(len(obj)):
 				print(obj[i]," for: [",vot.vote_options[i],"]")

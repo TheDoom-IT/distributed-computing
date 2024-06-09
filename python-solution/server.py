@@ -21,7 +21,7 @@ def helloReply():
 		endTime = vot["endTime"]
 		question = vot["question"]
 		voteOptions = vot["voteOptions"]
-		votings.append(voting(votingId,nodeId,question,endTime,voteOptions))
+		votings.append(voting(votingId,nodeId,question,endTime,voteOptions,True))
 	return jsonify("helloReply")
 
 @app.route("/start-voting", methods = ['POST'])
@@ -34,7 +34,7 @@ def startVoting():
 	voteOptions = []
 	for voteOption in request.json["voteOptions"]:
 		voteOptions.append(voteOption)
-	votings.append(voting(votingId, hostId, question, endTime, voteOptions))
+	votings.append(voting(votingId, hostId, question, endTime, voteOptions, True))
 	# print("voting created, question: [",question,"] host: ", hostId)
 	return jsonify("startVoting")
 
@@ -43,9 +43,9 @@ def sendVote():
 
 	# print(jsonify(v))
 	# print("got send vote")
-	nodeId = request.json["node_id"]
-	votingId = request.json["voting_id"]
-	voteOption = request.json["vote_option"]
+	nodeId = request.json["nodeId"]
+	votingId = request.json["votingId"]
+	voteOption = request.json["voteOptionIndex"]
 	for i in range(len(votings)):
 		if votings[i].voting_id == votingId:
 			votings[i].castVote(nodeId,voteOption)
