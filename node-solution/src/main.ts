@@ -21,9 +21,10 @@ async function main() {
     const node = new VotingNode(nodeId, addresses.address, httpServer.getServerPort(), logger);
 
     socketService.startListening(node);
+    httpServer.startListening(node);
+
     await socketService.sendHelloBroadcast(node.prepareHelloMessage());
 
-    httpServer.startListening(node);
 
     await ui.start(node);
 
