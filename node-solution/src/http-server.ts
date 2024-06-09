@@ -73,13 +73,26 @@ export class HttpServer {
                 return;
             }
 
-            node.handleSendVote(req.body);
+            const sendVoteData = result.data;
+
+            const voting = node.getInternalVoting(sendVoteData.votingId)
+            if (voting === null) {
+                res.status(404).json({error: "Voting not found"});
+                return;
+            }
+
+            if (voting.endTime < new Date().getTime()) {
+                res.status(400).json({error: "Voting has ended"});
+                return;
+            }
+
+            node.handleSendVote(voting, result.data);
 
             res.json({success: true});
         });
 
         this.app.get('/get-voting-results/:votingId', (req, res) => {
-            const votingResults = node.getVotingResults(req.params.votingId)
+            const votingResults = node.getInternalVoting(req.params.votingId)
             if (!votingResults) {
                 res.status(404).json({error: "Voting not found"});
                 return;

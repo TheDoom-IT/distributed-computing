@@ -48,7 +48,7 @@ export class VotingNode {
         return this.externalVotings;
     }
 
-    getVotingResults(votingId: string): InternalVoting | null {
+    getInternalVoting(votingId: string): InternalVoting | null {
         return this.database.getVoting(votingId);
     }
 
@@ -252,15 +252,10 @@ export class VotingNode {
         }
     }
 
-    handleSendVote(message: SendVote) {
+    handleSendVote(voting: InternalVoting, message: SendVote) {
         const knownNode = this.knownNodes[message.nodeId];
         if (!knownNode) {
             throw new Error(`Unknown node ${message.nodeId} tried to send vote`);
-        }
-
-        const voting = this.database.getVoting(message.votingId);
-        if (!voting) {
-            throw new Error(`Voting ${message.votingId} not found`);
         }
 
         const previousVote = voting.votes[message.nodeId];
@@ -274,6 +269,20 @@ export class VotingNode {
         }
 
         this.database.addVote(message.votingId, vote);
+    }
+
+    addVoteToInternalVoting(votingId: string, voteOptionIndex: number) {
+        const voting = this.getInternalVoting(votingId);
+        if (!voting) {
+            throw new Error(`Voting ${votingId} not found`);
+        }
+
+        const vote = {
+            nodeId: this.id,
+            voteOptionIndex: voteOptionIndex
+        }
+
+        this.database.addVote(votingId, vote);
     }
 
     async sendVote(votingId: string, voteOptionIndex: number) {

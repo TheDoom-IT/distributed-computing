@@ -3,6 +3,7 @@ import {VotingNode} from "./voting-node.js";
 import {v4 as uuidv4} from 'uuid';
 import {MAX_VOTE_OPTIONS} from "./constants/max-vote-options.js";
 import * as util from "node:util";
+import {InternalVoting} from "./database.js";
 
 export class UI {
     ACTIONS = {
@@ -129,23 +130,46 @@ export class UI {
 
     async handleSendVote(node: VotingNode) {
         const externalVotings = node.getExternalVotings();
-        const choices = Object.values(externalVotings).map((voting) => ({
-            value: voting.id,
-            description: voting.question
-        }))
+        const expiredExternal = Object.values(externalVotings).filter((voting) => voting.endTime < new Date().getTime());
+        const validExternal = Object.values(externalVotings).filter((voting) => voting.endTime >= new Date().getTime());
 
-        if (choices.length === 0) {
+        const internalVotings = node.getInternalVotings();
+        const expiredInternal = Object.values(internalVotings).filter((voting) => voting.endTime < new Date().getTime());
+        const validInternal = Object.values(internalVotings).filter((voting) => voting.endTime >= new Date().getTime());
+
+        if (validInternal.length === 0 && validExternal.length === 0) {
             console.log("There are no active votings")
             return;
         }
 
-        const votingId = await select({
+        const validExternalChoices = validExternal.map((voting) => ({
+            name: voting.nodeId + ": " + voting.question,
+            value: voting,
+        }));
+        const validInternalChoices = validInternal.map((voting) => ({
+            name: node.getId() + ": " + voting.question,
+            value: {...voting, nodeId: node.getId()},
+        }));
+
+        const expiredExternalChoices = expiredExternal.map((voting) => ({
+            name: voting.nodeId + ": " + voting.question + " (expired)",
+            value: voting,
+            disabled: true
+        }));
+        const expiredInternalChoices = expiredInternal.map((voting) => ({
+            name: node.getId() + ": " + voting.question + " (expired)",
+            value: {...voting, nodeId: node.getId()},
+            disabled: true
+        }));
+
+        const choices = [...validExternalChoices, ...validInternalChoices, ...expiredExternalChoices, ...expiredInternalChoices]
+
+        const selectedVoting = await select({
             message: 'Which voting do you want to vote in?',
             choices
         });
 
-        const voting = externalVotings[votingId];
-        const voteOptions = voting.voteOptions.map((option, index) => ({
+        const voteOptions = selectedVoting.voteOptions.map((option, index) => ({
             name: option,
             value: index
         }))
@@ -155,7 +179,11 @@ export class UI {
             choices: voteOptions
         });
 
-        await node.sendVote(votingId, voteOptionIndex);
+        if (selectedVoting.nodeId === node.getId()) {
+            node.addVoteToInternalVoting(selectedVoting.id, voteOptionIndex)
+        } else {
+            await node.sendVote(selectedVoting.id, voteOptionIndex);
+        }
     }
 
     async handleGetResults(node: VotingNode) {
