@@ -47,64 +47,73 @@ def addVoting():
 	thisNode.save()
 
 def printVotings():
-	print("\nexisting votings:")
-	for i in range(len(votings)):
-		print("[",i,"]",votings[i].question,"\nhost node:[",votings[i].host_node_id,"]\noptions: ",votings[i].vote_options,"\n")
+	if len(votings) > 0:
+		print("\nexisting votings:")
+		for i in range(len(votings)):
+			print("[",i,"]",votings[i].question,"\nhost node:[",votings[i].host_node_id,"]\noptions: ",votings[i].vote_options,"\n")
+	else:
+		print("No votings to show")
 
 def vote():
 	timestamp = datetime.timestamp(datetime.now())
 	options = [x.question for x in votings if x.end_time > timestamp]
-	terminal_menu = TerminalMenu(options)
-	print("\nIn which voting would You like to cast the vote?")
-	chosen = terminal_menu.show()
-	i = 0
-	votId = -1
-	for vote in range(len(votings)):
-		if i == chosen:
-			votId = vote
-		if votings[vote].end_time > timestamp:
-			i += 1
-	vot = votings[votId]
-	terminal_menu = TerminalMenu(vot.vote_options)
-	print("\nFor which option would You like to vote?")
-	option = terminal_menu.show()
-	if vot.host_node_id == thisNode.node_id:
-		vot.castVote(thisNode.node_id, option)
-	else:
-		node = thisNode.known_nodes[vot.host_node_id]
-		js = {'nodeId':thisNode.node_id,'votingId':vot.voting_id ,'voteOptionIndex':option}
-		url = "http://"+str(node.node_ip)+":"+str(node.node_port)+"/send-vote"
-		try:
-			x = requests.post(url, json=js)
-		except requests.exceptions.RequestException as e:
-			logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
-			logging.debug(traceback.format_exc())
+	if len(options) > 0:
+		terminal_menu = TerminalMenu(options)
+		print("\nIn which voting would You like to cast the vote?")
+		chosen = terminal_menu.show()
+		i = 0
+		votId = -1
+		for vote in range(len(votings)):
+			if i == chosen:
+				votId = vote
+			if votings[vote].end_time > timestamp:
+				i += 1
+		vot = votings[votId]
+		terminal_menu = TerminalMenu(vot.vote_options)
+		print("\nFor which option would You like to vote?")
+		option = terminal_menu.show()
+		if vot.host_node_id == thisNode.node_id:
+			vot.castVote(thisNode.node_id, option)
+		else:
+			node = thisNode.known_nodes[vot.host_node_id]
+			js = {'nodeId':thisNode.node_id,'votingId':vot.voting_id ,'voteOptionIndex':option}
+			url = "http://"+str(node.node_ip)+":"+str(node.node_port)+"/send-vote"
+			try:
+				x = requests.post(url, json=js)
+			except requests.exceptions.RequestException as e:
+				logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
+				logging.debug(traceback.format_exc())
 
-		# print(x)
-		# print(x.content)
+			# print(x)
+			# print(x.content)
+	else:
+		print("No votings to vote in")
 
 def printVotingResults():
 	options = [x.question for x in votings]
-	print("\nresults of which voting would You like to see?")
-	terminal_menu = TerminalMenu(options)
-	vot = votings[terminal_menu.show()]
-	if vot.host_node_id == thisNode.node_id:
-		print("\nvoting results:")
-		for i in range(len(vot.vote_options)):
-			print(vot.vote_results[i]," for: [",vot.vote_options[i],"]")
-		print("")
+	if len(options) > 0:
+		print("\nresults of which voting would You like to see?")
+		terminal_menu = TerminalMenu(options)
+		vot = votings[terminal_menu.show()]
+		if vot.host_node_id == thisNode.node_id:
+			print("\nvoting results:")
+			for i in range(len(vot.vote_options)):
+				print(vot.vote_results[i]," for: [",vot.vote_options[i],"]")
+			print("")
+		else:
+			print("voting hosted by another node")
+			hostNode = thisNode.known_nodes[vot.host_node_id]
+			url = "http://"+str(hostNode.node_ip)+":"+str(hostNode.node_port)+"/get-voting-results/"+str(vot.voting_id)
+			try:
+				x = requests.get(url)#, params={'votingId':vot.voting_id})
+				obj = json.loads(x.content.decode("utf-8"))
+				for i in range(len(obj['results'])):
+					print(obj['results'][i]," votes for: [",obj['voteOptions'][i],"]")
+			except requests.exceptions.RequestException as e:
+				logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
+				logging.debug(traceback.format_exc())
 	else:
-		print("voting hosted by another node")
-		hostNode = thisNode.known_nodes[vot.host_node_id]
-		url = "http://"+str(hostNode.node_ip)+":"+str(hostNode.node_port)+"/get-voting-results/"+str(vot.voting_id)
-		try:
-			x = requests.get(url)#, params={'votingId':vot.voting_id})
-			obj = json.loads(x.content.decode("utf-8"))
-			for i in range(len(obj['results'])):
-				print(obj['results'][i]," votes for: [",obj['voteOptions'][i],"]")
-		except requests.exceptions.RequestException as e:
-			logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
-			logging.debug(traceback.format_exc())
+		print("No votings to show")
 
 
 def printNodes():
