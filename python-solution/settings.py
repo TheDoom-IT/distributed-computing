@@ -1,33 +1,25 @@
 import netifaces
 
+def get_address():
+	interfaces = netifaces.interfaces()
 
-#thinkpad : wlp3s0
-#vivobook: wlp1s0
-interfaces = netifaces.interfaces()
-print("interfaces: ", interfaces)
-i = 0
-# address = netifaces.ifaddresses(interfaces[i])[netifaces.AF_INET]
-# print("address: ", address)
-# ip_addr = address[i]['addr']
-# print("checking address: ",address[i]['addr'])
-# while (ip_addr.startswith('127')):
-# 	i+=1
-# 	address = netifaces.ifaddresses(interfaces[i])[netifaces.AF_INET]
-# 	print("address: ", address)
-# 	ip_addr = address['addr']
-# 	print("checking address: ",address['addr'])
-# 	# print("checking address: ",addresses[0]['addr'])
-print("checking interface: ", interfaces[i])
-while not interfaces[i].startswith("w"): #wifi interfaces appear to always start with wl
-	i += 1
-	print("checking interface: ", interfaces[i])
-address = netifaces.ifaddresses(interfaces[i])[netifaces.AF_INET]
-print("address: ", address)
+	# Linux wifi interfaces appear to always start with wl
+	first_wl = next(filter(lambda x: x.startswith("wl"), interfaces), None)
+	if first_wl is not None:
+		return netifaces.ifaddresses(first_wl)[netifaces.AF_INET]
 
+	# if no wl* interface is found then find any with broadcast
+	ifaddresses = map(lambda x: netifaces.ifaddresses(x), interfaces)
+	ipv4 = filter(lambda x: netifaces.AF_INET in x, ifaddresses)
+
+	with_broadcast = next(filter(lambda x: "broadcast" in x.get(netifaces.AF_INET)[0], ipv4))
+	if with_broadcast is not None:
+		return with_broadcast[netifaces.AF_INET]
+
+	raise Exception("No suitable interface found")
+
+
+address = get_address()
 ip_addr = address[0]['addr']
-print("ip address: ", ip_addr)
 mask = address[0]['netmask']
 broadcast = address[0]['broadcast']
-# ip_addr = '192.168.1.140'
-# mask = '255.255.255.0'
-# date_format = "yyyy-MM-dd HH:mm:ss"
