@@ -1,6 +1,8 @@
 .venv/
 logs/*
+!logs/.keep
 __pycache__/
 savefiles/*
+!savefiles/.keep
 start.txt
 test.py
