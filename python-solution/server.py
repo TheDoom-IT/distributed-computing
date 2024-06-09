@@ -67,7 +67,8 @@ def getVotingResults(votingId):
 	# print("votingNum: ",votingNum)
 	if votingNum == -1:
 		abort(404)
-	return jsonify(votings[votingNum].vote_results)
+	obj = {'votingId':votings[votingNum].voting_id,'question': votings[votingNum].question, 'voteOptions': votings[votingNum].vote_options, 'results':votings[votingNum].vote_results}
+	return jsonify(obj)#jsonify(votings[votingNum].vote_results)
 
 def runServer(ip_addr, port):
 	# with app.app_context():

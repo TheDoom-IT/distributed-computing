@@ -97,8 +97,8 @@ def printVotingResults():
 		try:
 			x = requests.get(url)#, params={'votingId':vot.voting_id})
 			obj = json.loads(x.content.decode("utf-8"))
-			for i in range(len(obj)):
-				print(obj[i]," for: [",vot.vote_options[i],"]")
+			for i in range(len(obj['results'])):
+				print(obj['results'][i]," votes for: [",obj['voteOptions'][i],"]")
 		except requests.exceptions.RequestException as e:
 			logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
 			logging.debug(traceback.format_exc())

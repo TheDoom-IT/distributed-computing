@@ -145,7 +145,7 @@ class thisNode(node):
 				votingDict['vote_options'] = vot.vote_options
 				votingDict['votes'] = vot.votes
 				votingDict['vote_results'] = vot.vote_results
-			saveDict['votings'].append(votingDict)
+				saveDict['votings'].append(votingDict)
 
 		# print(json.dumps(saveDict))
 		f = open("savefiles/"+self.node_id+".txt","w")
