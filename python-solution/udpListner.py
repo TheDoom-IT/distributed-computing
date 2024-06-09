@@ -39,15 +39,15 @@ def udpListner():
 			# print("listening for udp on port: ", UDP_PORT)
 			while True:
 				data, addr = sock.recvfrom(1024)
-				# print("received message: ", data.decode("utf-8"))
+				print("received message: ", data.decode("utf-8"))
 				obj = json.loads(data.decode("utf-8"))
 				# print("nodeId: ",obj["nodeId"])
 				node_id = obj["nodeId"]
 				node_ip = obj["ip"]
 				node_port = obj["port"]
 				thisNode.addNode(node_id,node_ip,node_port)
-				time.sleep(2)
 				sendHelloReply(node_ip, node_port)
+				print("sent hello reply to: ", node_ip, ":", node_port)
 				# active_votings = []
 				# for vot in votings:
 				# 	# if len(active_votings) > 0:

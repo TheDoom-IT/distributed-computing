@@ -51,12 +51,14 @@ def sendVote():
 			votings[i].castVote(nodeId,voteOption)
 	return jsonify([nodeId, voteOption])
 
-@app.route("/get-voting-results", methods = ['GET'])
-def getVotingResults():
+@app.route("/get-voting-results/<votingId>", methods = ['GET'])
+def getVotingResults(votingId):
 	# print("got get voting results")
 	# print("from queue: ", testQueue.get())
 	# request.
-	votingId = request.args.get('votingId')
+
+	# votingId = request.args.get('votingId')
+	
 	# print("got get-voting-results votingId: ", votingId)
 	votingNum = -1
 	for i in range(len(votings)):
