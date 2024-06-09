@@ -29,8 +29,11 @@ def addVoting():
 	currVoting = voting(votingId, thisNode.getId(), question, runtime, voteOptions)
 	#here send info about created voting to all known nodes
 	# global json
-	# jsendtime = json.dumps(currVoting.end_time)
-	js = {'nodeId':thisNode.getId(), 'votingId':currVoting.voting_id,'endTime':currVoting.end_time, 'question':question,'voteOptions':voteOptions}
+
+	# JavaScript uses milliseconds as timestamp, while python uses seconds
+	# converts timestamp to milliseconds so it is compatible with JS solution
+	end_time_as_nano = int(currVoting.end_time * 1000)
+	js = {'nodeId':thisNode.getId(), 'votingId':currVoting.voting_id,'endTime':end_time_as_nano, 'question':question,'voteOptions':voteOptions}
 	for node in thisNode.known_nodes:
 		url = "http://"+str(thisNode.known_nodes[node].node_ip)+":"+str(thisNode.known_nodes[node].node_port)+"/start-voting"
 		try:

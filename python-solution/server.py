@@ -21,20 +21,26 @@ def helloReply():
 		endTime = vot["endTime"]
 		question = vot["question"]
 		voteOptions = vot["voteOptions"]
-		votings.append(voting(votingId,nodeId,question,endTime,voteOptions,True))
+
+		# end_time is sent as milliseconds (JS compatibility), convert them to seconds
+		endTimeAsSeconds = float(endTime / 1000)
+		votings.append(voting(votingId,nodeId,question,endTimeAsSeconds,voteOptions))
 	return jsonify("helloReply")
 
 @app.route("/start-voting", methods = ['POST'])
 def startVoting():
 	# print("got start voting")
 	hostId = request.json["nodeId"]
-	votingId = request.json["votingId"]	
+	votingId = request.json["votingId"]
 	endTime = request.json["endTime"]
 	question = request.json["question"]
 	voteOptions = []
 	for voteOption in request.json["voteOptions"]:
 		voteOptions.append(voteOption)
-	votings.append(voting(votingId, hostId, question, endTime, voteOptions, True))
+
+	# end_time is sent as milliseconds (JS compatibility), convert them to seconds
+	endTimeAsSeconds = float(endTime / 1000)
+	votings.append(voting(votingId, hostId, question, endTimeAsSeconds, voteOptions))
 	# print("voting created, question: [",question,"] host: ", hostId)
 	return jsonify("startVoting")
 
@@ -58,7 +64,7 @@ def getVotingResults(votingId):
 	# request.
 
 	# votingId = request.args.get('votingId')
-	
+
 	# print("got get-voting-results votingId: ", votingId)
 	votingNum = -1
 	for i in range(len(votings)):

@@ -65,7 +65,7 @@ class voting:
 	vote_results = None
 
 
-	def __init__(self, voting_id:str, host_node_id: str, question:str, end_time, vote_options, fromNetwork = False):
+	def __init__(self, voting_id:str, host_node_id: str, question:str, end_time, vote_options):
 		self.voting_id = voting_id
 		self.host_node_id = host_node_id
 		self.question = question
@@ -74,11 +74,8 @@ class voting:
 			self.end_time = end_time#datetime.strptime(end_time, date_format)
 		elif isinstance(end_time, int):
 			# print("got endtime as int")
-			if not fromNetwork:
-				dt = datetime.now() + timedelta(minutes = end_time)
-				self.end_time = datetime.timestamp(dt)
-			else:
-				self.end_time = end_time
+			dt = datetime.now() + timedelta(minutes = end_time)
+			self.end_time = datetime.timestamp(dt)
 		# else:
 		# 	print("unsupported endtime type ", type(end_time))
 		self.vote_options = vote_options

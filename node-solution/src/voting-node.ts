@@ -199,7 +199,8 @@ export class VotingNode {
     }
 
     async startNewVoting(question: string, voteOptions: string[], timeLimit: number) {
-        const endTime = new Date().getTime() + timeLimit;
+        // getTime uses milliseconds, change timeLimit to milliseconds
+        const endTime = new Date().getTime() + timeLimit * 1000;
         const id = uuidv4();
         this.database.addNewVoting({id, question, voteOptions, endTime, votes: {}});
 
