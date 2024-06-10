@@ -26,7 +26,7 @@ async function main() {
     await socketService.sendHelloBroadcast(node.prepareHelloMessage());
 
 
-    await ui.start(node);
+    await ui.start(node, socketService);
 
 
     httpServer.close()

@@ -4,6 +4,7 @@ import {v4 as uuidv4} from 'uuid';
 import {MAX_VOTE_OPTIONS} from "./constants/max-vote-options.js";
 import * as util from "node:util";
 import {InternalVoting} from "./database.js";
+import {SocketService} from "./socket-service.js";
 
 export class UI {
     ACTIONS = {
@@ -12,6 +13,7 @@ export class UI {
         GET_RESULTS: 'Get external voting results',
         GET_LIST_OF_NODES: 'Get list of nodes',
         GET_STARTED_VOTINGS: 'Get internal votings',
+        RESEND_BROADCAST: 'Resend broadcast',
         EXIT: 'Exit'
     };
 
@@ -27,7 +29,7 @@ export class UI {
         return nodeId;
     }
 
-    async start(node: VotingNode) {
+    async start(node: VotingNode, socketService: SocketService) {
         whileLoop: while (true) {
             const menuAction = await select({
                 message: `${node.getId()}: What do you want to do?`,
@@ -41,12 +43,16 @@ export class UI {
                         description: 'Send vote to active voting',
                     },
                     {
+                        value: this.ACTIONS.GET_LIST_OF_NODES,
+                        description: 'Get list of nodes',
+                    },
+                    {
                         value: this.ACTIONS.GET_RESULTS,
                         description: 'Get voting results',
                     },
                     {
-                        value: this.ACTIONS.GET_LIST_OF_NODES,
-                        description: 'Get list of nodes',
+                        value: this.ACTIONS.RESEND_BROADCAST,
+                        description: 'Resend broadcast',
                     },
                     {
                         value: this.ACTIONS.GET_STARTED_VOTINGS,
@@ -75,10 +81,17 @@ export class UI {
                 case this.ACTIONS.GET_LIST_OF_NODES:
                     this.handleGetListOfNodes(node);
                     break;
+                case this.ACTIONS.RESEND_BROADCAST:
+                    await this.handleResendBroadcast(node, socketService);
+                    break;
                 case this.ACTIONS.EXIT:
                     break whileLoop;
             }
         }
+    }
+
+    async handleResendBroadcast(node: VotingNode, socketService: SocketService) {
+        await socketService.sendHelloBroadcast(node.prepareHelloMessage());
     }
 
     handleGetStartedVotings(node: VotingNode) {
