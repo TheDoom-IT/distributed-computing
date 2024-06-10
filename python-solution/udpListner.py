@@ -45,9 +45,13 @@ def udpListner():
 				node_id = obj["nodeId"]
 				node_ip = obj["ip"]
 				node_port = obj["port"]
-				thisNode.addNode(node_id,node_ip,node_port)
+				if node_id not in thisNode.known_nodes:
+					thisNode.addNode(node_id,node_ip,node_port)
+					print("new node added: ", node_id)
+				else:
+					thisNode.editNode(node_id, node_ip, node_port)
+					print("node: ", node_id, " reconnected")
 				sendHelloReply(node_ip, node_port)
-				print("new node added: ", node_id)
 				# print("sent hello reply to: ", node_ip, ":", node_port)
 				# active_votings = []
 				# for vot in votings:

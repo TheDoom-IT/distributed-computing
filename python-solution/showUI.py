@@ -4,6 +4,7 @@ import traceback
 import logging
 import os
 from sendUDP import sendUDP
+from commons import thisNode
 
 
 
@@ -40,7 +41,7 @@ def showUI():
 				case 6:
 					save()
 				case 7:
-					sendUDP()
+					sendUDP(thisNode.getId(), thisNode.getPort())
 				case 8:
 					exit = True
 		print("exiting the application")

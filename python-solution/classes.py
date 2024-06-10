@@ -153,5 +153,8 @@ class thisNode(node):
 		self.known_nodes[id] = node(id, ip, port)
 		# print("added node: ")
 
+	def editNode(self, id, ip, port):
+		self.known_nodes[id].setIp(ip)
+		self.known_nodes[id].setPort(port)
 
 
