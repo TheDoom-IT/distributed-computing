@@ -3,13 +3,14 @@ from handleCommand import addVoting, printVotings, vote, printVotingResults, pri
 import traceback
 import logging
 import os
+from sendUDP import sendUDP
 
 
 
 
 
 def showUI():
-	options = ["create a new voting","print existing votings", "cast a vote", "print voting results","print avaliable nodes", "add a node(if not found automatically)", "save this nodes state", "exit"]
+	options = ["create a new voting","print existing votings", "cast a vote", "print voting results","print avaliable nodes", "add a node(if not found automatically)", "save this nodes state","resend discovery broadcast", "exit"]
 	terminal_menu = TerminalMenu(options)
 	try:
 		exit = False
@@ -39,6 +40,8 @@ def showUI():
 				case 6:
 					save()
 				case 7:
+					sendUDP()
+				case 8:
 					exit = True
 		print("exiting the application")
 		os._exit(0)
