@@ -9,7 +9,7 @@ from udpListner import udpListner
 import socket
 import os.path
 import time
-from sendUDP import sendUDP
+from sendUDP import sendUDPnTimes
 import json
 from showUI import showUI
 
@@ -70,7 +70,7 @@ if __name__ == '__main__':
 
 	TPE.submit(runServer, ip_addr, node_port)
 	time.sleep(5)
-	sendUDP(node_id, node_port)
+	sendUDPnTimes(node_id, node_port, 2)
 	TPE.submit(udpListner)
 
 

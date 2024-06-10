@@ -3,7 +3,6 @@ from settings import ip_addr, mask, broadcast
 import ipaddress
 import json
 
-
 def sendUDP(nodeId,nodePort):
 	# host = ipaddress.IPv4Address(ip_addr)
 	# net = ipaddress.IPv4Network(ip_addr+'/'+mask, False)
@@ -17,3 +16,7 @@ def sendUDP(nodeId,nodePort):
 	for i in range(0,4):
 		sock.sendto(bytes(data,encoding="utf-8"), (broadcast,UDP_PORT+i))
 	print("broadcast messages sent")
+
+def sendUDPnTimes(nodeId, nodePort, n):
+	for i in range(n):
+		sendUDP(nodeId, nodePort)
