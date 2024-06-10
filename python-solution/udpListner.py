@@ -47,6 +47,7 @@ def udpListner():
 				node_port = obj["port"]
 				thisNode.addNode(node_id,node_ip,node_port)
 				sendHelloReply(node_ip, node_port)
+				print("new node added: ", node_id)
 				# print("sent hello reply to: ", node_ip, ":", node_port)
 				# active_votings = []
 				# for vot in votings:
