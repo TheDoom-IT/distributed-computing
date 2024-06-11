@@ -47,14 +47,10 @@ export class SocketService {
         this.logger.info(`Listening for broadcast on port ${this.broadcastPort}`)
     }
 
-    async sendHelloBroadcast(helloMessage: HelloMessage) {
-        this.logger.info("Sending hello broadcast to find other nodes...")
-
-        const messageBuffer = Buffer.from(JSON.stringify(helloMessage));
-
-        const messages = SUPPORTED_PORTS.map((port) => {
+    private prepareMessages(message: Buffer): Promise<void>[] {
+        return SUPPORTED_PORTS.map((port) => {
             return new Promise<void>((res, rej) => {
-                this.socket.send(messageBuffer, port, this.broadcastAddress, (err, bytes) => {
+                this.socket.send(message, port, this.broadcastAddress, (err, bytes) => {
                     if (err) {
                         this.logger.error(`Failed to send message to ${this.broadcastAddress}:${port}`);
                         rej(err);
@@ -63,6 +59,14 @@ export class SocketService {
                 });
             })
         });
+    }
+
+    async sendHelloBroadcast(helloMessage: HelloMessage) {
+        this.logger.info("Sending hello broadcast to find other nodes...")
+
+        const messageBuffer = Buffer.from(JSON.stringify(helloMessage));
+
+        const messages = [...this.prepareMessages(messageBuffer), this.prepareMessages(messageBuffer)]
 
         await Promise.all(messages);
     }
