@@ -1,6 +1,7 @@
 from commons import votings, thisNode
 import requests
-import logging
+# import logging
+from log import log
 import traceback
 
 
@@ -20,6 +21,7 @@ def sendHelloReply(node_ip, node_port:int):
 	try:
 		x = requests.post(url, json = json)
 	except requests.exceptions.RequestException as e:
-		logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
-		logging.debug(traceback.format_exc())
+		# logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
+		# logging.debug(traceback.format_exc())
+		log("error sending hello-reply.\n", traceback.format_exc())
 	# print(x)

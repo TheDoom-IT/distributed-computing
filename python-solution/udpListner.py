@@ -6,7 +6,8 @@ import traceback
 import ipaddress
 import json
 import requests
-import logging
+# import logging
+from log import log 
 import time
 
 def check_port(port):
@@ -47,10 +48,10 @@ def udpListner():
 				node_port = obj["port"]
 				if node_id not in thisNode.known_nodes:
 					thisNode.addNode(node_id,node_ip,node_port)
-					print("new node added: ", node_id)
+					print("new node added: ", node_id, "     ")
 				else:
 					thisNode.editNode(node_id, node_ip, node_port)
-					print("node: ", node_id, " reconnected")
+					print("node: ", node_id, " reconnected     ")
 				sendHelloReply(node_ip, node_port)
 				# print("sent hello reply to: ", node_ip, ":", node_port)
 				# active_votings = []
@@ -66,8 +67,9 @@ def udpListner():
 				# # print(x)
 
 		except Exception as e:
-			logging.basicConfig(filename='logs/error.log',level=logging.DEBUG)
-			logging.debug("udp listener exception:\n",traceback.format_exc())
+			# logging.basicConfig(filename='logs/error.log',level=logging.DEBUG)
+			# logging.debug("udp listener exception:\n",traceback.format_exc())
+			log("udpListner error:\n", traceback.format_exc())
 
 if __name__ == '__main__':
 	udpListner()
