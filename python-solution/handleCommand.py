@@ -1,13 +1,17 @@
-from commons import thisNode, votings
+from commons import thisNode, votings#, votes
 from classes import voting
 from sendHelloReply import sendHelloReply
 import requests
+from requests.exceptions import ConnectionError
 import uuid
 import json
 from simple_term_menu import TerminalMenu
-from datetime import datetime
-import logging
+# from datetime import datetime
+from getTimestamp import getTimestamp
+# import logging
+from log import log
 import traceback
+from handleHostDown import handleHostDown
 
 
 def addVoting():
@@ -39,8 +43,9 @@ def addVoting():
 		try:
 			x = requests.post(url, json=js)
 		except requests.exceptions.RequestException as e:
-			logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
-			logging.debug(traceback.format_exc())
+			# logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
+			# logging.debug(traceback.format_exc())
+			log("error adding voting.\n",traceback.format_exc())
 		# print(x)
 		# print(x.content)
 	votings.append(currVoting)
@@ -50,12 +55,13 @@ def printVotings():
 	if len(votings) > 0:
 		print("\nexisting votings:")
 		for i in range(len(votings)):
-			print("[",i,"]",votings[i].question,"\nhost node:[",votings[i].host_node_id,"]\noptions: ",votings[i].vote_options,"\n")
+			print("[",i,"]",votings[i].question,"\nhost node:[",votings[i].host_node_id,"]\nvoting id:",votings[i].voting_id,"\noptions: ",votings[i].vote_options,"\nvotes: ",votings[i].votes,"\n")
 	else:
 		print("No votings to show")
 
 def vote():
-	timestamp = datetime.timestamp(datetime.now())
+	# timestamp = datetime.timestamp(datetime.now())
+	timestamp = getTimestamp()
 	options = [x.question for x in votings if x.end_time > timestamp]
 	if len(options) > 0:
 		terminal_menu = TerminalMenu(options)
@@ -72,6 +78,8 @@ def vote():
 		terminal_menu = TerminalMenu(vot.vote_options)
 		print("\nFor which option would You like to vote?")
 		option = terminal_menu.show()
+		# votes[vot.voting_id] = option
+		vot.castVote(thisNode.node_id, option)
 		if vot.host_node_id == thisNode.node_id:
 			vot.castVote(thisNode.node_id, option)
 		else:
@@ -80,9 +88,15 @@ def vote():
 			url = "http://"+str(node.node_ip)+":"+str(node.node_port)+"/send-vote"
 			try:
 				x = requests.post(url, json=js)
+			except ConnectionError:
+				print("\nconnection error while sending vote\nhost node unavaliable")
+				log("connection error while sending vote:\n", traceback.format_exc())
+				handleHostDown(vot.host_node_id)
 			except requests.exceptions.RequestException as e:
-				logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
-				logging.debug(traceback.format_exc())
+				# logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
+				# logging.debug(traceback.format_exc())
+				print("exception: ", e)
+				log("error sending vote:\n", traceback.format_exc())
 
 			# print(x)
 			# print(x.content)
@@ -109,9 +123,14 @@ def printVotingResults():
 				obj = json.loads(x.content.decode("utf-8"))
 				for i in range(len(obj['results'])):
 					print(obj['results'][i]," votes for: [",obj['voteOptions'][i],"]")
+			except ConnectionError:
+				handleHostDown(vot.host_node_id)
+				print("\nconnection error while fetching voting results\nhost node unavaliable")
+				log("connection error while fetching voting results:\n", traceback.format_exc())
 			except requests.exceptions.RequestException as e:
-				logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
-				logging.debug(traceback.format_exc())
+				# logging.basicConfig(filename='logs/connectionError.log',level=logging.DEBUG)
+				# logging.debug(traceback.format_exc())
+				log("error printing vote results:\n",traceback.format_exc())
 	else:
 		print("No votings to show")
 

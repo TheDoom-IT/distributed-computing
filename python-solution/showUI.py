@@ -1,7 +1,8 @@
 from simple_term_menu import TerminalMenu
 from handleCommand import addVoting, printVotings, vote, printVotingResults, printNodes, addNode, save
 import traceback
-import logging
+# import logging
+from log import log
 import os
 from sendUDP import sendUDP
 from commons import thisNode
@@ -49,9 +50,9 @@ def showUI():
 	except Exception as e:
 		print("exception occured: traceback: ", traceback.format_exc())
 
-		logging.basicConfig(filename='logs/error.log',level=logging.DEBUG)
-		logging.debug(traceback.format_exc())
-
+		# logging.basicConfig(filename='logs/error.log',level=logging.DEBUG)
+		# logging.debug(traceback.format_exc())
+		log("ui exception.\n", traceback.format_exc())
 
 
 
