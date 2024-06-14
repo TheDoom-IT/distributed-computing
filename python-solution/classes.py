@@ -1,6 +1,7 @@
 import pickle
 import socket #to get ip
-from datetime import datetime, timedelta
+# from datetime import datetime, timedelta
+from getTimestamp import getTimestamp
 # from settings import date_format
 import json
 
@@ -69,13 +70,18 @@ class voting:
 		self.voting_id = voting_id
 		self.host_node_id = host_node_id
 		self.question = question
-		if isinstance(end_time, float):
-			# print("got endtime as float")
-			self.end_time = end_time#datetime.strptime(end_time, date_format)
-		elif isinstance(end_time, int):
-			# print("got endtime as int")
-			dt = datetime.now() + timedelta(minutes = end_time)
-			self.end_time = datetime.timestamp(dt)
+		# if isinstance(end_time, float):
+		# 	# print("got endtime as float")
+		# 	self.end_time = end_time#datetime.strptime(end_time, date_format)
+		# elif isinstance(end_time, int):
+		# 	# print("got endtime as int")
+		# 	# dt = datetime.now() + timedelta(minutes = end_time)
+		# 	# self.end_time = datetime.timestamp(dt)
+		if end_time <= 10000: #end_time small, so the user is creating the voting
+			self.end_time = getTimestamp(end_time)
+		else:
+			self.end_time = end_time
+
 		# else:
 		# 	print("unsupported endtime type ", type(end_time))
 		self.vote_options = vote_options
@@ -134,7 +140,7 @@ class thisNode(node):
 		saveDict['node_port'] = self.node_port
 		saveDict['votings'] = []
 		for vot in votings:
-			if vot.host_node_id == self.node_id:
+			# if vot.host_node_id == self.node_id:
 				votingDict = {}
 				votingDict['voting_id'] = vot.voting_id
 				votingDict['question'] = vot.question
