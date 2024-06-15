@@ -5,7 +5,14 @@ import {HelloReply} from "./models/hello-reply.js";
 import {StartVoting} from "./models/start-voting.js";
 import {VotingResultsSchema} from "./models/voting-results.js";
 import {SendVote} from "./models/send-vote.js";
-import {Database, InternalVoting} from "./database.js";
+import {Database, InternalVoting, SentVote} from "./database.js";
+import {
+    ElectionMessage,
+    ElectionMessageResponse,
+    ElectionMessageResponseSchema,
+    ElectionResult, ElectionResultResponse, ElectionResultResponseSchema
+} from "./models/election.js";
+import {tryJsonParse} from "./utils/try-json-parse.js";
 
 
 interface ExternalNode {
@@ -22,16 +29,24 @@ interface ExternalVoting {
     endTime: number;
 }
 
+interface Election {
+    failedHostId: string;
+    timestamp: number;
+    finished: boolean;
+}
+
 export class VotingNode {
     private readonly knownNodes: Record<string, ExternalNode>;
+    private readonly elections: Record<string, Election>;
     private readonly externalVotings: Record<string, ExternalVoting>;
     private readonly database: Database;
 
-    constructor(private readonly id: string, private readonly ip: string, private readonly port: number, private logger: Logger) {
+    constructor(private readonly id: string, private readonly ip: string, private readonly port: number, private readonly logger: Logger) {
         this.port = port;
         this.logger = logger;
         this.knownNodes = {};
-        this.externalVotings = {}
+        this.externalVotings = {};
+        this.elections = {};
 
         this.database = new Database(id, this.logger);
     }
@@ -48,12 +63,127 @@ export class VotingNode {
         return this.externalVotings;
     }
 
+    getSentVote(votingId: string): SentVote | null {
+        return this.database.getSentVote(votingId);
+    }
+
     getInternalVoting(votingId: string): InternalVoting | null {
         return this.database.getVoting(votingId);
     }
 
     getInternalVotings() {
         return this.database.getAllVotings();
+    }
+
+    private async startSingleElection(election: Election) {
+        const message: ElectionMessage = {
+            nodeId: this.id,
+            oldHostId: election.failedHostId,
+            timestamp: election.timestamp
+        };
+
+        const requests = Object.values(this.knownNodes).map(async (knownNode) => {
+            return this.sendMessage(`http://${knownNode.ip}:${knownNode.port}/election`, {
+                method: 'POST',
+                body: JSON.stringify(message),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+        });
+
+        const responses = await Promise.all(requests);
+        const responsesAsText = await Promise.all(responses.map((r) => r?.text()));
+        const messages = responsesAsText.filter((r): r is string => !!r)
+            .map((r) => ElectionMessageResponseSchema.safeParse(tryJsonParse(r)))
+            .filter((r) => r.success)
+            .map((r) => r.data as ElectionMessageResponse);
+
+        const anyFalse = messages.some((m) => !m.ok);
+        if (anyFalse) {
+            this.logger.error(`Election for node ${election.failedHostId} failed. One of the nodes returned false.`);
+            this.elections[election.failedHostId].finished = true;
+            return;
+        }
+
+        this.logger.info(`Election for node ${election.failedHostId} succeeded. Starting votings transfer.`);
+
+        for (const eVoting of Object.values(this.externalVotings)) {
+            if (eVoting.nodeId === election.failedHostId) {
+                const newVoting: InternalVoting = {
+                    id: eVoting.id,
+                    question: eVoting.question,
+                    voteOptions: eVoting.voteOptions,
+                    endTime: eVoting.endTime,
+                    votes: {}
+                };
+
+                // add vote sent by this node to the known votes
+                const voting = this.database.getSentVote(eVoting.id);
+                if(voting) {
+                    newVoting.votes[this.id] = {
+                        nodeId: this.id,
+                        voteOptionIndex: voting.voteOptionIndex
+                    }
+                }
+
+                delete this.externalVotings[eVoting.id];
+
+                this.database.addNewVoting(newVoting);
+            }
+        }
+
+        // announce election result
+        const electionResult: ElectionResult = {
+            oldHostId: election.failedHostId,
+            nodeId: this.id
+        }
+
+        const electionResultMessage = JSON.stringify(electionResult);
+        const electionResultsRequests = Object.values(this.knownNodes).map(async (knownNode) => {
+            const response = await this.sendMessage(`http://${knownNode.ip}:${knownNode.port}/election-results`, {
+                method: 'POST',
+                body: electionResultMessage,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            return {response, id: knownNode.id}
+        });
+        const electionResultResponses = await Promise.all(electionResultsRequests);
+        const electionResultResponsesAsText = await Promise.all(electionResultResponses.map(async (r) => ({id: r.id, text: await r.response?.text()})));
+        const eResultMessages = electionResultResponsesAsText.filter((r): r is {id: string, text: string} => !!r.text)
+            .map((r) => ({id: r.id, data: ElectionResultResponseSchema.safeParse(tryJsonParse(r.text))}))
+            .filter((r) => r.data.success)
+            .map((r) => ({id: r.id, data: r.data.data as ElectionResultResponse}));
+
+        // save received votes
+        for (const message of eResultMessages) {
+            for (const [votingId, voteOptionIndex] of message.data.votes) {
+                if (voteOptionIndex !== null) {
+                    this.database.addVote(votingId, {nodeId: message.id, voteOptionIndex});
+                }
+            }
+        }
+
+        // save votings
+        this.elections[election.failedHostId].finished = true;
+        this.logger.info(`Election for node ${election.failedHostId} finished.`);
+    }
+
+    async startElectionForNode(nodeId: string) {
+        this.logger.info(`Starting election for node ${nodeId}`);
+
+        const election: Election = {
+            failedHostId: nodeId,
+            timestamp: new Date().getTime(),
+            finished: false
+        };
+
+        this.elections[nodeId] = election;
+
+        await this.startSingleElection(election);
     }
 
     async getExternalVotingResults(votingId: string) {
@@ -71,7 +201,12 @@ export class VotingNode {
             method: 'GET',
         });
 
-        if (result === null || !result.ok) {
+        if (result === null) {
+            await this.startElectionForNode(externalNode.id);
+            return null;
+        }
+
+        if (!result.ok) {
             this.logger.error(`Failed to get voting results for voting ${votingId}`);
             return null;
         }
@@ -103,6 +238,55 @@ export class VotingNode {
         };
     }
 
+    handleElectionResultMessage(message: ElectionResult): ElectionResultResponse {
+        const result: ElectionResultResponse['votes'] = [];
+
+        // change known votings owner
+        Object.values(this.externalVotings).forEach((voting) => {
+            if (voting.nodeId === message.oldHostId) {
+                voting.nodeId = message.nodeId;
+
+                const voteOptionIndex = this.database.getSentVote(voting.id)?.voteOptionIndex ?? null;
+                result.push([voting.id, voteOptionIndex]);
+            }
+        });
+
+        // change internal votings to external
+        if (this.id === message.oldHostId) {
+            const internalVotings = this.database.getAllVotings();
+            this.database.removeAllVotings();
+            for (const iVoting of Object.values(internalVotings)) {
+                this.externalVotings[iVoting.id] = {
+                    id: iVoting.id,
+                    nodeId: message.nodeId,
+                    question: iVoting.question,
+                    voteOptions: iVoting.voteOptions,
+                    endTime: iVoting.endTime
+                }
+
+                const voteOptionIndex = iVoting.votes[this.id]?.voteOptionIndex ?? null
+                result.push([iVoting.id, voteOptionIndex]);
+            }
+        }
+
+        return {
+            votes: result
+        }
+    }
+
+    handleElectionMessage(election: ElectionMessage): ElectionMessageResponse {
+        const oldElection = this.elections[election.oldHostId];
+        if (oldElection && !oldElection.finished && oldElection.timestamp < election.timestamp) {
+            return {
+                ok: false
+            }
+        }
+
+        return {
+            ok: true
+        }
+    }
+
     async handleHelloMessage(message: HelloMessage) {
         if (message.nodeId === this.id) {
             return;
@@ -114,13 +298,17 @@ export class VotingNode {
             ip: message.ip
         })
 
+
         message.activeVotings?.forEach((activeVoting) => {
-            this.externalVotings[activeVoting.votingId] = {
-                id: activeVoting.votingId,
-                nodeId: message.nodeId,
-                question: activeVoting.question,
-                voteOptions: activeVoting.voteOptions,
-                endTime: activeVoting.endTime
+            const iVoting = this.database.getVoting(activeVoting.votingId)
+            if (!iVoting) {
+                this.externalVotings[activeVoting.votingId] = {
+                    id: activeVoting.votingId,
+                    nodeId: message.nodeId,
+                    question: activeVoting.question,
+                    voteOptions: activeVoting.voteOptions,
+                    endTime: activeVoting.endTime
+                }
             }
         })
         await this.sendHelloReply(this.knownNodes[message.nodeId]);
@@ -141,6 +329,8 @@ export class VotingNode {
                 voteOptions: activeVoting.voteOptions,
                 endTime: activeVoting.endTime
             }
+
+            this.database.removeVoting(activeVoting.votingId);
         })
     }
 
@@ -283,6 +473,7 @@ export class VotingNode {
         }
 
         this.database.addVote(votingId, vote);
+        this.database.addSentVote({votingId, voteOptionIndex});
     }
 
     async sendVote(votingId: string, voteOptionIndex: number) {
@@ -310,8 +501,15 @@ export class VotingNode {
             }
         })
 
-        if (result === null || !result.ok) {
+        if (result === null) {
+            await this.startElectionForNode(externalNode.id);
+            return;
+        }
+
+        if (!result.ok) {
             this.logger.error(`Failed to send vote to node ${voting.nodeId}`);
         }
+
+        this.database.addSentVote({votingId, voteOptionIndex});
     }
 }

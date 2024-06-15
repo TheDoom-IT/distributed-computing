@@ -16,21 +16,49 @@ export interface InternalVoting {
     votes: Record<string, Vote>;
 }
 
+export interface SentVote {
+    votingId: string;
+    voteOptionIndex: number;
+}
+
 export class Database {
-    private readonly votings: Record<string, InternalVoting>;
+    private votings: Record<string, InternalVoting>;
+    private sentVotes: Record<string, SentVote>;
 
     constructor(private readonly nodeId: string, private readonly logger: Logger) {
         this.votings = {};
+        this.sentVotes = {};
 
         this.readPreviousState();
     }
 
     getVoting(votingId: string): InternalVoting | null {
-        return this.votings[votingId];
+        return this.votings[votingId] ?? null;
     }
 
     getAllVotings() {
         return this.votings;
+    }
+
+    removeAllVotings() {
+        this.votings = {};
+        this.saveState();
+    }
+
+    removeVoting(votingId: string) {
+        if (this.votings[votingId]) {
+            delete this.votings[votingId];
+            this.saveState();
+        }
+    }
+
+    getSentVote(votingId: string): SentVote | null {
+        return this.sentVotes[votingId] ?? null;
+    }
+
+    addSentVote(vote: SentVote) {
+        this.sentVotes[vote.votingId] = vote;
+        this.saveState();
     }
 
     addVote(votingId: string, vote: { voteOptionIndex: number; nodeId: string }) {
@@ -44,7 +72,7 @@ export class Database {
     }
 
     private saveState() {
-        const state: State = { votings: this.votings };
+        const state: State = { votings: this.votings, sentVotes: this.sentVotes };
         fs.writeFileSync(`./${this.nodeId}.json`, JSON.stringify(state));
     }
 
@@ -66,8 +94,7 @@ export class Database {
         }
 
         this.logger.info(`Restoring previous state for node ${this.nodeId}`);
-        for (const votingId in previousState.data.votings) {
-            this.votings[votingId] = previousState.data.votings[votingId];
-        }
+        this.votings = previousState.data.votings;
+        this.sentVotes = previousState.data.sentVotes;
     }
 }

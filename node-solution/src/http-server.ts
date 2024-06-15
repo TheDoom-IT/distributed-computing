@@ -7,6 +7,10 @@ import {VotingNode} from "./voting-node.js";
 import {StartVotingSchema} from "./models/start-voting.js";
 import {VotingResults} from "./models/voting-results.js";
 import {SendVoteSchema} from "./models/send-vote.js";
+import {
+    ElectionMessageSchema,
+    ElectionResultSchema
+} from "./models/election.js";
 
 export class HttpServer {
     private app: express.Express;
@@ -112,6 +116,40 @@ export class HttpServer {
             }
 
             res.status(200).json(responseBody);
+        });
+
+        this.app.post('/election', (req, res) => {
+            const body = req.body;
+
+            const result = ElectionMessageSchema.safeParse(body);
+            if (!result.success) {
+                this.logger.info("Invalid JSON: " + result.error.message);
+                res.status(400).json({error: "Invalid JSON"});
+                return;
+            }
+
+            const electionData = result.data;
+
+            const responseMessage = node.handleElectionMessage(electionData);
+
+            res.status(200).json(responseMessage);
+        });
+
+        this.app.post('/election-results', (req, res) => {
+            const body = req.body;
+
+            const result = ElectionResultSchema.safeParse(body);
+            if (!result.success) {
+                this.logger.info("Invalid JSON: " + result.error.message);
+                res.status(400).json({error: "Invalid JSON"});
+                return;
+            }
+
+            const electionResultData = result.data;
+
+            const responseMessage = node.handleElectionResultMessage(electionResultData);
+
+            res.status(200).json(responseMessage);
         });
     }
 
