@@ -7,7 +7,6 @@ import {VotingNode} from "./voting-node.js";
 import {StartVotingSchema} from "./models/start-voting.js";
 import {VotingResults} from "./models/voting-results.js";
 import {SendVoteSchema} from "./models/send-vote.js";
-import {GetVote} from "./models/get-vote.js";
 import {
     ElectionMessageSchema,
     ElectionResultSchema
@@ -151,30 +150,6 @@ export class HttpServer {
             const responseMessage = node.handleElectionResultMessage(electionResultData);
 
             res.status(200).json(responseMessage);
-        });
-
-
-
-        this.app.get('/get-vote-for/:votingId', (req, res) => {
-            const votingId = req.params.votingId;
-
-            const internal = node.getInternalVoting(votingId)
-            const external = node.getExternalVotings()[votingId]
-
-            if (!internal && !external) {
-                res.status(404).json({error: "Voting not found"});
-                return;
-            }
-
-            const sentVote = node.getSentVote(votingId);
-
-            const responseBody: GetVote = {
-                nodeId: node.getId(),
-                votingId,
-                vote: sentVote?.voteOptionIndex ?? null
-            };
-
-            res.status(200).json(responseBody);
         });
     }
 
