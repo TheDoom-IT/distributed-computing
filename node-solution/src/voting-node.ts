@@ -30,7 +30,7 @@ interface ExternalVoting {
 }
 
 interface Election {
-    nodeId: string;
+    failedHostId: string;
     timestamp: number;
     finished: boolean;
 }
@@ -78,7 +78,7 @@ export class VotingNode {
     private async startSingleElection(election: Election) {
         const message: ElectionMessage = {
             nodeId: this.id,
-            oldHostId: election.nodeId,
+            oldHostId: election.failedHostId,
             timestamp: election.timestamp
         };
 
@@ -101,15 +101,15 @@ export class VotingNode {
 
         const anyFalse = messages.some((m) => !m.ok);
         if (anyFalse) {
-            this.logger.error(`Election for node ${election.nodeId} failed. One of the nodes returned false.`);
-            this.elections[election.nodeId].finished = true;
+            this.logger.error(`Election for node ${election.failedHostId} failed. One of the nodes returned false.`);
+            this.elections[election.failedHostId].finished = true;
             return;
         }
 
-        this.logger.info(`Election for node ${election.nodeId} succeeded. Starting votings transfer.`);
+        this.logger.info(`Election for node ${election.failedHostId} succeeded. Starting votings transfer.`);
 
         for (const eVoting of Object.values(this.externalVotings)) {
-            if (eVoting.nodeId === election.nodeId) {
+            if (eVoting.nodeId === election.failedHostId) {
                 const newVoting: InternalVoting = {
                     id: eVoting.id,
                     question: eVoting.question,
@@ -135,7 +135,7 @@ export class VotingNode {
 
         // announce election result
         const electionResult: ElectionResult = {
-            oldHostId: election.nodeId,
+            oldHostId: election.failedHostId,
             nodeId: this.id
         }
 
@@ -168,15 +168,15 @@ export class VotingNode {
         }
 
         // save votings
-        this.elections[election.nodeId].finished = true;
-        this.logger.info(`Election for node ${election.nodeId} finished.`);
+        this.elections[election.failedHostId].finished = true;
+        this.logger.info(`Election for node ${election.failedHostId} finished.`);
     }
 
     async startElectionForNode(nodeId: string) {
         this.logger.info(`Starting election for node ${nodeId}`);
 
         const election: Election = {
-            nodeId,
+            failedHostId: nodeId,
             timestamp: new Date().getTime(),
             finished: false
         };
@@ -288,7 +288,6 @@ export class VotingNode {
     }
 
     async handleHelloMessage(message: HelloMessage) {
-        // TODO: what to do with node after crush when its votings were moved to other nodes?
         if (message.nodeId === this.id) {
             return;
         }
