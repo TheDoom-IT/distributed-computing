@@ -11,6 +11,10 @@ export const StateSchema = z.object({
             nodeId: z.string(),
             voteOptionIndex: z.number()
         }))
+    })),
+    sentVotes: z.object({}).catchall(z.object({
+        votingId: z.string(),
+        voteOptionIndex: z.number().nonnegative()
     }))
 });
 
