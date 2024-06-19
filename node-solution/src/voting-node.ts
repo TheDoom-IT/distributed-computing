@@ -99,7 +99,7 @@ export class VotingNode {
             .filter((r) => r.success)
             .map((r) => r.data as ElectionMessageResponse);
 
-        const anyFalse = messages.some((m) => !m.ok);
+        const anyFalse = messages.some((m) => m.response !== "OK");
         if (anyFalse) {
             this.logger.error(`Election for node ${election.failedHostId} failed. One of the nodes returned false.`);
             this.elections[election.failedHostId].finished = true;
@@ -278,12 +278,12 @@ export class VotingNode {
         const oldElection = this.elections[election.oldHostId];
         if (oldElection && !oldElection.finished && oldElection.timestamp < election.timestamp) {
             return {
-                ok: false
+                response: "NOT OK"
             }
         }
 
         return {
-            ok: true
+            response: "OK"
         }
     }
 

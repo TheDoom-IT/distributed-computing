@@ -7,7 +7,7 @@ export const ElectionMessageSchema = z.object({
 });
 
 export const ElectionMessageResponseSchema = z.object({
-    ok: z.boolean(),
+    response: z.string()
 });
 
 export const ElectionResultSchema = z.object({
