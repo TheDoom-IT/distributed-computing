@@ -156,6 +156,8 @@ class thisNode(node):
 		f.close()
 
 	def addNode(self, id, ip, port):
+		if id == self.node_id:
+			return
 		self.known_nodes[id] = node(id, ip, port)
 		# print("added node: ")
 
